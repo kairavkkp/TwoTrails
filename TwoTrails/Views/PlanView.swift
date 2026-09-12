@@ -1,29 +1,71 @@
 import SwiftUI
 
 struct PlanView: View {
+    @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var planStore: PlanStore
     private let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    
+    @State private var editingVariant: (key: String, variant: WorkoutVariant)?
+    @State private var showingResetAlert = false
+    
+    private var currentUser: Person? {
+        userManager.currentUser?.person
+    }
+    
+    private var currentPlan: [String: WorkoutVariant] {
+        guard let person = currentUser else { return [:] }
+        return planStore.getPlan(for: person)
+    }
+    
+    private var isUsingCustomPlan: Bool {
+        guard let person = currentUser else { return false }
+        return planStore.isUsingCustomPlan(for: person)
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Your 12-week plan. Tue, Thu and Sat are gym days — the rest are for walking.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.inkSoft)
-
-                    weekGrid
-
-                    sectionHeader("Him — recomposition")
-                    ForEach(["A", "B", "C"], id: \.self) { v in
-                        if let variant = Plan.him[v] {
-                            PlanBlock(person: .him, variant: variant)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your 12-week plan. Tue, Thu and Sat are gym days — the rest are for walking.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.inkSoft)
+                        
+                        if isUsingCustomPlan {
+                            HStack {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.accent(for: currentUser ?? .him))
+                                Text("Using custom plan")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Theme.accent(for: currentUser ?? .him))
+                                Spacer()
+                                Button {
+                                    showingResetAlert = true
+                                } label: {
+                                    Text("Reset to default")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Theme.inkSoft)
+                                }
+                            }
+                            .padding(.top, 4)
                         }
                     }
 
-                    sectionHeader("Her — beginner strength")
-                    ForEach(["A", "B", "C"], id: \.self) { v in
-                        if let variant = Plan.her[v] {
-                            PlanBlock(person: .her, variant: variant)
+                    weekGrid
+
+                    if let person = currentUser {
+                        sectionHeader(person == .him ? "Him — recomposition" : "Her — beginner strength")
+                        ForEach(["A", "B", "C"], id: \.self) { v in
+                            if let variant = currentPlan[v] {
+                                PlanBlock(
+                                    person: person,
+                                    variant: variant,
+                                    onEdit: {
+                                        editingVariant = (key: v, variant: variant)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -31,6 +73,24 @@ struct PlanView: View {
             }
             .background(Theme.paper.ignoresSafeArea())
             .navigationBarHidden(true)
+            .sheet(item: Binding(
+                get: { editingVariant.map { EditVariantWrapper(key: $0.key, variant: $0.variant) } },
+                set: { editingVariant = $0.map { ($0.key, $0.variant) } }
+            )) { wrapper in
+                EditWorkoutView(variantKey: wrapper.key, variant: wrapper.variant)
+                    .environmentObject(planStore)
+                    .environmentObject(userManager)
+            }
+            .alert("Reset to Default Plan?", isPresented: $showingResetAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    if let person = currentUser {
+                        planStore.resetToDefault(for: person)
+                    }
+                }
+            } message: {
+                Text("This will restore the original workout plan. Your custom changes will be lost.")
+            }
         }
     }
 
@@ -62,15 +122,39 @@ struct PlanView: View {
     }
 }
 
+// Wrapper to make the editing state identifiable
+struct EditVariantWrapper: Identifiable {
+    let id = UUID()
+    let key: String
+    let variant: WorkoutVariant
+}
+
 private struct PlanBlock: View {
     let person: Person
     let variant: WorkoutVariant
+    let onEdit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(variant.label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.accent(for: person))
+            HStack {
+                Text(variant.label)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.accent(for: person))
+                
+                Spacer()
+                
+                Button {
+                    onEdit()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "pencil")
+                        Text("Edit")
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.accent(for: person))
+                }
+                .buttonStyle(.plain)
+            }
 
             VStack(spacing: 0) {
                 ForEach(variant.exercises) { ex in
@@ -93,4 +177,6 @@ private struct PlanBlock: View {
 
 #Preview {
     PlanView()
+        .environmentObject(UserManager())
+        .environmentObject(PlanStore())
 }

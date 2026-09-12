@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodayView: View {
     @EnvironmentObject var store: TrackerStore
+    @EnvironmentObject var userManager: UserManager
     private let today = Date()
 
     private var dayKind: DayKind { Plan.dayKind(for: today) }
@@ -11,6 +12,10 @@ struct TodayView: View {
         f.dateFormat = "EEEE, d MMMM"
         return f.string(from: today)
     }
+    
+    private var currentUser: Person? {
+        userManager.currentUser?.person
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,8 +23,8 @@ struct TodayView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    ForEach(Person.allCases) { person in
-                        PersonCard(person: person, date: today, dayKind: dayKind)
+                    if let user = currentUser {
+                        PersonCard(person: user, date: today, dayKind: dayKind)
                     }
                 }
                 .padding(18)
@@ -52,5 +57,7 @@ struct TodayView: View {
 }
 
 #Preview {
-    TodayView().environmentObject(TrackerStore())
+    TodayView()
+        .environmentObject(TrackerStore())
+        .environmentObject(UserManager())
 }

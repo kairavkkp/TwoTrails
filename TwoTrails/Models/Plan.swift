@@ -1,6 +1,6 @@
 import Foundation
 
-enum Person: String, Codable, CaseIterable, Identifiable {
+enum Person: String, Codable, CaseIterable, Identifiable, Hashable {
     case him, her
     var id: String { rawValue }
     var displayName: String { self == .him ? "Him" : "Her" }
@@ -14,7 +14,7 @@ struct ExerciseItem: Identifiable, Codable, Hashable {
 
 struct WorkoutVariant: Codable {
     let label: String
-    let exercises: [ExerciseItem]
+    var exercises: [ExerciseItem]
 }
 
 enum DayKind: Equatable {

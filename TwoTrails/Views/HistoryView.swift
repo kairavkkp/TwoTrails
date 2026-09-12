@@ -2,9 +2,14 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject var store: TrackerStore
+    @EnvironmentObject var userManager: UserManager
 
     private var last14Days: [Date] {
         (0..<14).map { Calendar.current.date(byAdding: .day, value: -$0, to: Date())! }
+    }
+    
+    private var currentUser: Person? {
+        userManager.currentUser?.person
     }
 
     var body: some View {
@@ -16,8 +21,10 @@ struct HistoryView: View {
                         .foregroundStyle(Theme.ink)
                         .padding(.bottom, 12)
 
-                    ForEach(last14Days, id: \.self) { date in
-                        HistoryRow(date: date)
+                    if currentUser != nil {
+                        ForEach(last14Days, id: \.self) { date in
+                            HistoryRow(date: date)
+                        }
                     }
                 }
                 .padding(18)
@@ -31,9 +38,14 @@ struct HistoryView: View {
 
 private struct HistoryRow: View {
     @EnvironmentObject var store: TrackerStore
+    @EnvironmentObject var userManager: UserManager
     let date: Date
 
     private var dayKind: DayKind { Plan.dayKind(for: date) }
+    
+    private var currentUser: Person? {
+        userManager.currentUser?.person
+    }
 
     private var dayLabel: String {
         if Calendar.current.isDateInToday(date) { return "Today" }
@@ -48,14 +60,12 @@ private struct HistoryRow: View {
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.ink)
             Spacer()
-            HStack(spacing: 6) {
-                mark(for: .him, label: "H walk", walk: true)
-                if case .gym = dayKind {
-                    mark(for: .him, label: "H gym", walk: false)
-                }
-                mark(for: .her, label: "W walk", walk: true)
-                if case .gym = dayKind {
-                    mark(for: .her, label: "W gym", walk: false)
+            if let person = currentUser {
+                HStack(spacing: 6) {
+                    mark(for: person, label: "Walk", walk: true)
+                    if case .gym = dayKind {
+                        mark(for: person, label: "Gym", walk: false)
+                    }
                 }
             }
         }
@@ -84,5 +94,7 @@ private struct HistoryRow: View {
 }
 
 #Preview {
-    HistoryView().environmentObject(TrackerStore())
+    HistoryView()
+        .environmentObject(TrackerStore())
+        .environmentObject(UserManager())
 }
