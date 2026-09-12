@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Set-Level Exercise Tracking
 
 /// Represents a single set within an exercise
-struct ExerciseSet: Identifiable, Codable, Hashable {
+struct ExerciseSet: Identifiable, Codable, Hashable, Equatable {
     let id: String
     var reps: Int
     var weight: Double // in kg or lbs
@@ -31,7 +31,7 @@ struct ExerciseSet: Identifiable, Codable, Hashable {
 }
 
 /// Enhanced exercise item with set-level tracking
-struct PlannedExercise: Identifiable, Codable, Hashable {
+struct PlannedExercise: Identifiable, Codable, Hashable, Equatable {
     let id: String
     var exerciseTemplate: ExerciseTemplate
     var sets: [ExerciseSet]
@@ -91,7 +91,7 @@ struct PlannedExercise: Identifiable, Codable, Hashable {
 }
 
 /// Enhanced workout variant with set-level tracking
-struct EnhancedWorkoutVariant: Identifiable, Codable {
+struct EnhancedWorkoutVariant: Identifiable, Codable, Equatable {
     let id: String
     var label: String
     var exercises: [PlannedExercise]
@@ -144,6 +144,15 @@ struct EnhancedWorkoutVariant: Identifiable, Codable {
         guard totalSets > 0 else { return 0 }
         let completedSets = exercises.reduce(0) { $0 + $1.completedSets }
         return Double(completedSets) / Double(totalSets)
+    }
+    
+    // Equatable conformance
+    static func == (lhs: EnhancedWorkoutVariant, rhs: EnhancedWorkoutVariant) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.label == rhs.label &&
+        lhs.exercises == rhs.exercises &&
+        lhs.weekday == rhs.weekday &&
+        lhs.notes == rhs.notes
     }
 }
 

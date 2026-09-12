@@ -78,7 +78,6 @@ enum Plan {
         person == .him ? him : her
     }
 
-    // DEPRECATED: Use ScheduleStore instead for flexible scheduling
     // Sunday = 1 ... Saturday = 7 (Calendar.component(.weekday))
     static let schedule: [Int: DayKind] = [
         1: .rest,
@@ -90,14 +89,14 @@ enum Plan {
         7: .gym(variant: "C")
     ]
 
-    // DEPRECATED: Use ScheduleStore.getAssignedWorkout instead
+    // DEPRECATED: Use ScheduleStore instead for flexible scheduling
     static func dayKind(for date: Date) -> DayKind {
         let weekday = Calendar.current.component(.weekday, from: date)
         return schedule[weekday] ?? .rest
     }
     
-    // Helper to get DayKind from optional variant
-    static func dayKind(for variantKey: String?) -> DayKind {
+    // Helper to convert variant key to DayKind
+    static func dayKind(forVariant variantKey: String?) -> DayKind {
         if let key = variantKey {
             return .gym(variant: key)
         }

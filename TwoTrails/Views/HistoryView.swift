@@ -48,7 +48,7 @@ private struct HistoryRow: View {
     private var dayKind: DayKind {
         guard let person = currentUser else { return .walk }
         let variantKey = scheduleStore.getAssignedWorkout(for: date, person: person)
-        return Plan.dayKind(for: variantKey)
+        return Plan.dayKind(forVariant: variantKey)
     }
     
     private var currentUser: Person? {

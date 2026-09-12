@@ -2,7 +2,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var store: TrackerStore
+    @EnvironmentObject var planStore: PlanStore
+    @EnvironmentObject var scheduleStore: ScheduleStore
     @Binding var showingUserSwitcher: Bool
+    
+    @State private var showingResetAlert = false
+    @State private var resetConfirmationText = ""
     
     private var currentUser: UserProfile? {
         userManager.currentUser
@@ -86,6 +92,32 @@ struct SettingsView: View {
                             .padding(.horizontal, 18)
                         }
                         
+                        // Data Management Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Data Management")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.inkSoft)
+                                .textCase(.uppercase)
+                                .padding(.horizontal, 18)
+                            
+                            VStack(spacing: 0) {
+                                SettingsRowDestructive(
+                                    icon: "trash.fill",
+                                    title: "Reset All Data",
+                                    subtitle: "Delete all workouts, plans, and settings"
+                                ) {
+                                    showingResetAlert = true
+                                }
+                            }
+                            .background(Theme.card)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Theme.line, lineWidth: 1)
+                            )
+                            .padding(.horizontal, 18)
+                        }
+                        
                         // App Info
                         VStack(alignment: .leading, spacing: 12) {
                             Text("About")
@@ -122,7 +154,34 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .alert("Reset All Data?", isPresented: $showingResetAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset Everything", role: .destructive) {
+                    resetAllData()
+                }
+            } message: {
+                Text("This will permanently delete ALL data for both users including:\n\n• All workout logs\n• Custom workout plans\n• Weekly schedules\n• Progress history\n• User preferences\n\nThis action cannot be undone. The app will restart from the beginning.")
+            }
         }
+    }
+    
+    private func resetAllData() {
+        // Clear all UserDefaults
+        let domain = Bundle.main.bundleIdentifier!
+        UserDefaults.standard.removePersistentDomain(forName: domain)
+        UserDefaults.standard.synchronize()
+        
+        // Force clear specific keys as backup
+        UserDefaults.standard.removeObject(forKey: "TwoTrails.CurrentUser")
+        UserDefaults.standard.removeObject(forKey: "TwoTrails.HasCompletedOnboarding")
+        UserDefaults.standard.removeObject(forKey: "TwoTrails.CustomPlans")
+        UserDefaults.standard.removeObject(forKey: "TwoTrails.WeeklySchedules")
+        
+        // Clear user manager (will trigger app restart to onboarding)
+        userManager.clearUser()
+        
+        // Note: TrackerStore data will be cleared automatically when app restarts
+        // since UserDefaults has been wiped
     }
 }
 
@@ -167,7 +226,51 @@ struct SettingsRow: View {
     }
 }
 
+struct SettingsRowDestructive: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.red.opacity(0.08))
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(.red)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15))
+                        .foregroundStyle(.red)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.inkSoft)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.inkSoft)
+            }
+            .padding(16)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 #Preview {
     SettingsView(showingUserSwitcher: .constant(false))
         .environmentObject(UserManager())
+        .environmentObject(TrackerStore())
+        .environmentObject(PlanStore())
+        .environmentObject(ScheduleStore())
 }
