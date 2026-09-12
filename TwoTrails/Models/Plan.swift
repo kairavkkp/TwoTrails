@@ -1,6 +1,6 @@
 import Foundation
 
-enum Person: String, Codable, CaseIterable, Identifiable, Hashable {
+enum Person: String, Codable, CaseIterable, Identifiable {
     case him, her
     var id: String { rawValue }
     var displayName: String { self == .him ? "Him" : "Her" }
@@ -78,6 +78,7 @@ enum Plan {
         person == .him ? him : her
     }
 
+    // DEPRECATED: Use ScheduleStore instead for flexible scheduling
     // Sunday = 1 ... Saturday = 7 (Calendar.component(.weekday))
     static let schedule: [Int: DayKind] = [
         1: .rest,
@@ -89,8 +90,17 @@ enum Plan {
         7: .gym(variant: "C")
     ]
 
+    // DEPRECATED: Use ScheduleStore.getAssignedWorkout instead
     static func dayKind(for date: Date) -> DayKind {
         let weekday = Calendar.current.component(.weekday, from: date)
         return schedule[weekday] ?? .rest
+    }
+    
+    // Helper to get DayKind from optional variant
+    static func dayKind(for variantKey: String?) -> DayKind {
+        if let key = variantKey {
+            return .gym(variant: key)
+        }
+        return .walk // Walk day by default if no workout assigned
     }
 }

@@ -3,9 +3,15 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject var store: TrackerStore
     @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var scheduleStore: ScheduleStore
+    @EnvironmentObject var planStore: PlanStore
     private let today = Date()
 
-    private var dayKind: DayKind { Plan.dayKind(for: today) }
+    private var dayKind: DayKind {
+        guard let person = currentUser else { return .walk }
+        let variantKey = scheduleStore.getAssignedWorkout(for: today, person: person)
+        return Plan.dayKind(for: variantKey)
+    }
 
     private var dateLabel: String {
         let f = DateFormatter()
@@ -60,4 +66,6 @@ struct TodayView: View {
     TodayView()
         .environmentObject(TrackerStore())
         .environmentObject(UserManager())
+        .environmentObject(ScheduleStore())
+        .environmentObject(PlanStore())
 }

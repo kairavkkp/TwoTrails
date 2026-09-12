@@ -3,6 +3,8 @@ import SwiftUI
 struct HistoryView: View {
     @EnvironmentObject var store: TrackerStore
     @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var scheduleStore: ScheduleStore
+    @EnvironmentObject var planStore: PlanStore
 
     private var last14Days: [Date] {
         (0..<14).map { Calendar.current.date(byAdding: .day, value: -$0, to: Date())! }
@@ -39,9 +41,15 @@ struct HistoryView: View {
 private struct HistoryRow: View {
     @EnvironmentObject var store: TrackerStore
     @EnvironmentObject var userManager: UserManager
+    @EnvironmentObject var scheduleStore: ScheduleStore
+    @EnvironmentObject var planStore: PlanStore
     let date: Date
 
-    private var dayKind: DayKind { Plan.dayKind(for: date) }
+    private var dayKind: DayKind {
+        guard let person = currentUser else { return .walk }
+        let variantKey = scheduleStore.getAssignedWorkout(for: date, person: person)
+        return Plan.dayKind(for: variantKey)
+    }
     
     private var currentUser: Person? {
         userManager.currentUser?.person
@@ -79,7 +87,7 @@ private struct HistoryRow: View {
         if walk {
             on = log.walked
         } else if case .gym(let variant) = dayKind {
-            let exercises = Plan.variants(for: person)[variant]?.exercises ?? []
+            let exercises = planStore.getPlan(for: person)[variant]?.exercises ?? []
             on = log.allCompleted(for: exercises)
         }
         return Text(label)
@@ -97,4 +105,6 @@ private struct HistoryRow: View {
     HistoryView()
         .environmentObject(TrackerStore())
         .environmentObject(UserManager())
+        .environmentObject(ScheduleStore())
+        .environmentObject(PlanStore())
 }

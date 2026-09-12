@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PersonCard: View {
     @EnvironmentObject var store: TrackerStore
+    @EnvironmentObject var planStore: PlanStore
     let person: Person
     let date: Date
     let dayKind: DayKind
@@ -12,7 +13,7 @@ struct PersonCard: View {
 
     private var exercises: [ExerciseItem] {
         if case .gym(let variant) = dayKind {
-            return Plan.variants(for: person)[variant]?.exercises ?? []
+            return planStore.getPlan(for: person)[variant]?.exercises ?? []
         }
         return []
     }
